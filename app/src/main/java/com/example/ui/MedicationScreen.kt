@@ -166,6 +166,7 @@ fun MedicationScreen(viewModel: HRTViewModel) {
                     val alarmManager = context.getSystemService(android.content.Context.ALARM_SERVICE) as android.app.AlarmManager
                     val fakeMed = com.example.data.Medication(
                         id = 0, name = name, method = method, dose = dose, frequency = freq,
+                        nextRenewalDateMillis = null,
                         isReminderEnabled = true, reminderHour = hr, reminderMinute = min,
                         startDateMillis = System.currentTimeMillis()
                     )

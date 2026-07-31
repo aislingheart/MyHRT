@@ -96,8 +96,7 @@ object GeminiClient {
     private suspend fun tryAiCoreGeneration(prompt: String, systemInstruction: String): String? {
         return try {
             val generationConfig = com.google.ai.edge.aicore.GenerationConfig.builder().build()
-            val downloadConfig = com.google.ai.edge.aicore.DownloadConfig.builder().build()
-            val model = com.google.ai.edge.aicore.GenerativeModel(generationConfig, downloadConfig)
+            val model = com.google.ai.edge.aicore.GenerativeModel(generationConfig = generationConfig)
 
             val fullPrompt = "$systemInstruction\n\nUser question: $prompt"
             val response = model.generateContent(fullPrompt)
