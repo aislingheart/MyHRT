@@ -101,7 +101,7 @@ object GeminiClient {
             val fullPrompt = "$systemInstruction\n\nUser question: $prompt"
             val response = model.generateContent(fullPrompt)
             response.text?.takeIf { it.isNotBlank() }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.d(TAG, "AICore not available on this device: ${e.message}")
             null
         }
