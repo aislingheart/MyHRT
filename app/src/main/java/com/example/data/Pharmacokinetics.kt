@@ -333,16 +333,19 @@ private fun historicalDoseOffsets(
 
     // Past and present doses
     for (i in 0..pastCount) {
-        val doseH = startH + reminderOffsetH / 24.0 + i * intervalH
+        val doseH = startH + reminderOffsetH + i * intervalH
         // Store as hours-before-now (negative = past, used by the solver as τ from now)
         offsets.add(doseH - nowH)
     }
 
     // Future doses for lookahead graph
-    var futureH = (pastCount + 1) * intervalH
-    while (futureH <= lookaheadH) {
-        offsets.add(futureH)
-        futureH += intervalH
+    var j = 1
+    while (true) {
+        val doseH = startH + reminderOffsetH + (pastCount + j) * intervalH
+        val offsetFromNow = doseH - nowH
+        if (offsetFromNow > lookaheadH) break
+        offsets.add(offsetFromNow)
+        j++
     }
 
     return offsets

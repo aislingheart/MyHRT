@@ -17,6 +17,11 @@ import kotlinx.coroutines.withContext
 object GeminiClient {
 
     private const val TAG = "GeminiClient"
+    private var appContext: Context? = null
+
+    fun init(context: Context) {
+        appContext = context.applicationContext
+    }
 
     // ──────────────────────────────────────────────
     // On-Device / Offline Rule-Based Engine
@@ -95,7 +100,10 @@ object GeminiClient {
      */
     private suspend fun tryAiCoreGeneration(prompt: String, systemInstruction: String): String? {
         return try {
-            val generationConfig = com.google.ai.edge.aicore.GenerationConfig.builder().build()
+            val ctx = appContext ?: return null
+            val builder = com.google.ai.edge.aicore.GenerationConfig.builder()
+            builder.context = ctx
+            val generationConfig = builder.build()
             val model = com.google.ai.edge.aicore.GenerativeModel(generationConfig = generationConfig)
 
             val fullPrompt = "$systemInstruction\n\nUser question: $prompt"

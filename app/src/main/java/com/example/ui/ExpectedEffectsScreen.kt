@@ -693,17 +693,62 @@ fun ExpectedEffectsScreen(viewModel: HRTViewModel) {
                 val check = milestoneChecks.find { it.milestoneId == effect.title }
                 val isChecked = check != null
                 
-                var showPicker by remember { mutableStateOf(false) }
-                if (showPicker) {
+                var showOptionsDialog by remember { mutableStateOf(false) }
+                var showDatePicker by remember { mutableStateOf(false) }
+                
+                if (showOptionsDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showOptionsDialog = false },
+                        title = { Text("When was this achieved?") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val startMillis = profile?.startDateMillis ?: System.currentTimeMillis()
+                                val options = listOf(
+                                    Pair("At Onset", startMillis),
+                                    Pair("1 Month Mark", startMillis + 30L * 24 * 60 * 60 * 1000),
+                                    Pair("3 Month Mark", startMillis + 90L * 24 * 60 * 60 * 1000),
+                                    Pair("6 Month Mark", startMillis + 180L * 24 * 60 * 60 * 1000),
+                                    Pair("1 Year Mark", startMillis + 365L * 24 * 60 * 60 * 1000)
+                                )
+                                options.forEach { (label, dateMs) ->
+                                    TextButton(
+                                        onClick = {
+                                            viewModel.toggleMilestone(effect.title, true, dateMs)
+                                            showOptionsDialog = false
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                                    }
+                                }
+                                HorizontalDivider()
+                                TextButton(
+                                    onClick = {
+                                        showDatePicker = true
+                                        showOptionsDialog = false
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Specify Exact Date...", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showOptionsDialog = false }) { Text("Cancel") }
+                        }
+                    )
+                }
+
+                if (showDatePicker) {
                     val dateState = rememberDatePickerState()
                     DatePickerDialog(
-                        onDismissRequest = { showPicker = false },
+                        onDismissRequest = { showDatePicker = false },
                         confirmButton = {
                             TextButton(onClick = {
                                 dateState.selectedDateMillis?.let { date ->
                                     viewModel.toggleMilestone(effect.title, true, date)
                                 }
-                                showPicker = false
+                                showDatePicker = false
                             }) { Text("OK") }
                         }
                     ) {
@@ -735,14 +780,14 @@ fun ExpectedEffectsScreen(viewModel: HRTViewModel) {
                                 val dateStr = java.text.SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(java.util.Date(check!!.achievedDateMillis))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text("Achieved: $dateStr", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                                    TextButton(onClick = { showPicker = true }) { Text("Edit Date") }
+                                    TextButton(onClick = { showOptionsDialog = true }) { Text("Edit Date") }
                                 }
                             }
                         }
                         Checkbox(
                             checked = isChecked,
                             onCheckedChange = { 
-                                if (it) showPicker = true
+                                if (it) showOptionsDialog = true
                                 else viewModel.toggleMilestone(effect.title, false)
                             }
                         )

@@ -140,6 +140,11 @@ class HRTViewModel(private val repository: HRTRepository) : ViewModel() {
                     isAiEnabled = currentAiEnabled
                 )
             )
+            
+            // Align all medications' start dates to match profile start date for correct historical simulations
+            medications.value.forEach { med ->
+                repository.addMedication(med.copy(startDateMillis = startDateMillis))
+            }
         }
     }
 

@@ -9,6 +9,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Calendar
 import com.example.BuildConfig
@@ -19,7 +21,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun OnboardingScreen(viewModel: HRTViewModel, onComplete: () -> Unit) {
     var currentPage by remember { mutableStateOf(0) }
-    val maxPages = 5
+    val maxPages = 6
     
     // Page 1 Data
     var userName by remember { mutableStateOf("") }
@@ -32,33 +34,35 @@ fun OnboardingScreen(viewModel: HRTViewModel, onComplete: () -> Unit) {
     var showBloodTestDialog by remember { mutableStateOf(false) }
     val medications by viewModel.medications.collectAsStateWithLifecycle()
     
-    // Page 3 Data
+    // Page 3 Data (Milestones)
+    val achievedMilestones = remember { mutableStateMapOf<String, Int>() }
+
+    // Page 4 Data (AI Assistant)
     var wantsAi by remember { mutableStateOf<Boolean?>(null) }
     
-    // Page 4 Data
+    // Page 5 Data (AI Config)
     var aiType by remember { mutableStateOf("Cloud") }
     var aiStatusText by remember { mutableStateOf("") }
     var apiKey by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
-    
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(if(currentPage < 4) "Setup Profile (${currentPage+1}/4)" else "Welcome") }) },
+        topBar = { TopAppBar(title = { Text(if(currentPage < 5) "Setup Profile (${currentPage+1}/5)" else "Welcome") }) },
         bottomBar = {
             BottomAppBar {
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    if (currentPage > 0 && currentPage < 4) {
+                    if (currentPage > 0 && currentPage < 5) {
                         TextButton(onClick = { 
-                            if (currentPage == 4 && wantsAi == false) currentPage = 2
+                            if (currentPage == 5 && wantsAi == false) currentPage = 3
                             else currentPage-- 
                         }) { Text("Back") }
                     } else {
                         Spacer(Modifier.width(8.dp))
                     }
                     
-                    if (currentPage < 4) {
+                    if (currentPage < 5) {
                         Button(onClick = { 
-                            if (currentPage == 2 && wantsAi == false) currentPage = 4
+                            if (currentPage == 3 && wantsAi == false) currentPage = 5
                             else currentPage++ 
                         }) { Text("Next") }
                     } else {
@@ -71,6 +75,13 @@ fun OnboardingScreen(viewModel: HRTViewModel, onComplete: () -> Unit) {
                                 userName = userName.trim().ifEmpty { "Friend" },
                                 isAiEnabled = (wantsAi == true)
                             )
+                            
+                            // Insert pre-populated milestones mapped to timeline timestamps
+                            achievedMilestones.forEach { (title, monthsOffset) ->
+                                val date = startDateMillis + (monthsOffset * 30L * 24 * 60 * 60 * 1000)
+                                viewModel.toggleMilestone(title, true, date)
+                            }
+                            
                             onComplete()
                         }) { Text("Finish Setup") }
                     }
@@ -87,8 +98,9 @@ fun OnboardingScreen(viewModel: HRTViewModel, onComplete: () -> Unit) {
                 when (page) {
                     0 -> PageOne(userName, { userName = it }, startDateMillis, { startDateMillis = it }, regimen, { regimen = it })
                     1 -> PageTwo(viewModel, medications)
-                    2 -> PageThree(wantsAi) { wantsAi = it }
-                    3 -> PageFour(aiType, { aiType = it }, aiStatusText, apiKey, { apiKey = it }, {
+                    2 -> PageMilestones(regimen, achievedMilestones)
+                    3 -> PageThree(wantsAi) { wantsAi = it }
+                    4 -> PageFour(aiType, { aiType = it }, aiStatusText, apiKey, { apiKey = it }, {
                         scope.launch {
                             aiStatusText = "Testing..."
                             try {
@@ -98,7 +110,7 @@ fun OnboardingScreen(viewModel: HRTViewModel, onComplete: () -> Unit) {
                             }
                         }
                     })
-                    4 -> PageFive(userName)
+                    5 -> PageFive(userName)
                 }
             }
         }
@@ -250,6 +262,92 @@ fun PageTwo(viewModel: HRTViewModel, medications: List<com.example.data.Medicati
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PageMilestones(regimen: String, achievedMilestones: MutableMap<String, Int>) {
+    val milestones = if (regimen == "Feminizing") {
+        listOf(
+            "Breast Development (Thelarche)",
+            "Softening of Skin & Reduced Oiliness",
+            "Decreased Libido & Erection Changes",
+            "Body Fat Redistribution"
+        )
+    } else {
+        listOf(
+            "Voice Deepening",
+            "Clitoral Enlargement (Bottom Growth)",
+            "Cessation of Menses (Amenorrhea)",
+            "Facial & Body Hair Growth"
+        )
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Which milestones have you achieved?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Text("Select achieved goals and approximate timing to align the simulation timeline.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(16.dp))
+
+        milestones.forEach { milestone ->
+            val isChecked = achievedMilestones.containsKey(milestone)
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                colors = CardDefaults.cardColors(containerColor = if (isChecked) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(milestone, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        Checkbox(
+                            checked = isChecked,
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    achievedMilestones[milestone] = 3 // Default: 3 Months
+                                } else {
+                                    achievedMilestones.remove(milestone)
+                                }
+                            }
+                        )
+                    }
+
+                    if (isChecked) {
+                        Spacer(Modifier.height(8.dp))
+                        Text("When did this start?", style = MaterialTheme.typography.labelSmall)
+                        Spacer(Modifier.height(4.dp))
+                        
+                        val selectedOffset = achievedMilestones[milestone] ?: 3
+                        val options = listOf(
+                            Pair("Onset", 0),
+                            Pair("1 Month", 1),
+                            Pair("3 Months", 3),
+                            Pair("6 Months", 6),
+                            Pair("1 Year", 12)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            options.forEach { (label, value) ->
+                                val selected = selectedOffset == value
+                                FilterChip(
+                                    selected = selected,
+                                    onClick = { achievedMilestones[milestone] = value },
+                                    label = { Text(label, style = MaterialTheme.typography.labelSmall) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun PageThree(wantsAi: Boolean?, onSelect: (Boolean) -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -305,4 +403,3 @@ fun PageFive(userName: String) {
         Text("Your journey begins here.", style = MaterialTheme.typography.bodyMedium)
     }
 }
-

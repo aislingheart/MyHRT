@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
         var viewModel: HRTViewModel? = null
 
         try {
+            com.example.api.GeminiClient.init(applicationContext)
             database = AppDatabase.getInstance(applicationContext)
             repository = HRTRepository(database.hrtDao())
             viewModel = HRTViewModel(repository)
