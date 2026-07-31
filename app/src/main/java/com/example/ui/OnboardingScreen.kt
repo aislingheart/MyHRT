@@ -300,7 +300,7 @@ fun PageFive(userName: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text("🌸", style = MaterialTheme.typography.displayLarge)
         Spacer(Modifier.height(16.dp))
-        Text("Welcome to Bloom, ${userName.trim().ifEmpty { "Friend" }}!", style = MaterialTheme.typography.headlineLarge)
+        Text("Welcome to MyHRT, ${userName.trim().ifEmpty { "Friend" }}!", style = MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.height(8.dp))
         Text("Your journey begins here.", style = MaterialTheme.typography.bodyMedium)
     }

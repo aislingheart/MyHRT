@@ -77,7 +77,7 @@ fun DashboardScreen(viewModel: HRTViewModel) {
                 } ?: run {
                     Text("$greeting, $name! 🌸", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
-                    Text("Welcome to Bloom", style = MaterialTheme.typography.bodyLarge)
+                    Text("Welcome to MyHRT", style = MaterialTheme.typography.bodyLarge)
                 }
             }
 
