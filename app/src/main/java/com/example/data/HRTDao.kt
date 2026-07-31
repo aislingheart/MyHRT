@@ -49,4 +49,19 @@ interface HRTDao {
 
     @Query("DELETE FROM milestone_checks WHERE milestoneId = :id")
     suspend fun deleteMilestoneCheck(id: String)
+
+    @Query("SELECT * FROM chat_sessions ORDER BY createdAtMillis DESC")
+    fun getAllChatSessions(): Flow<List<ChatSession>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChatSession(session: ChatSession)
+
+    @Query("DELETE FROM chat_sessions WHERE id = :id")
+    suspend fun deleteChatSession(id: String)
+
+    @Query("SELECT * FROM chat_messages WHERE sessionId = :sessionId ORDER BY timestampMillis ASC")
+    fun getMessagesForSession(sessionId: String): Flow<List<ChatMessage>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChatMessage(message: ChatMessage)
 }

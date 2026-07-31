@@ -23,4 +23,11 @@ class HRTRepository(private val dao: HRTDao) {
     suspend fun removeBloodTest(id: Int) = dao.deleteBloodTest(id)
     suspend fun checkMilestone(check: MilestoneCheck) = dao.insertMilestoneCheck(check)
     suspend fun uncheckMilestone(id: String) = dao.deleteMilestoneCheck(id)
+
+    val allChatSessions: Flow<List<ChatSession>> = dao.getAllChatSessions()
+    suspend fun addChatSession(session: ChatSession) = dao.insertChatSession(session)
+    suspend fun deleteChatSession(id: String) = dao.deleteChatSession(id)
+    
+    fun getMessagesForSession(sessionId: String): Flow<List<ChatMessage>> = dao.getMessagesForSession(sessionId)
+    suspend fun addChatMessage(message: ChatMessage) = dao.insertChatMessage(message)
 }

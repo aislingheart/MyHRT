@@ -11,7 +11,10 @@ data class UserProfile(
     val isDarkTheme: Boolean? = null,
     val useDynamicColor: Boolean = true,
     val useOnDeviceAi: Boolean = false,
-    val apiKey: String? = null
+    val apiKey: String? = null,
+    val selectedAiModel: String = "gemini-3.5-flash",
+    val userName: String = "Friend",
+    val isAiEnabled: Boolean = true
 )
 
 @Entity(tableName = "medications")
@@ -50,4 +53,21 @@ data class BloodTestResult(
 data class MilestoneCheck(
     @PrimaryKey val milestoneId: String,
     val achievedDateMillis: Long
+)
+
+@Entity(tableName = "chat_sessions")
+data class ChatSession(
+    @PrimaryKey val id: String,
+    val title: String,
+    val createdAtMillis: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "chat_messages")
+data class ChatMessage(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val sessionId: String,
+    val text: String,
+    val isUser: Boolean,
+    val sourcesQuery: String? = null,
+    val timestampMillis: Long = System.currentTimeMillis()
 )

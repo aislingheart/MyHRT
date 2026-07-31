@@ -25,6 +25,7 @@ import java.util.Locale
 fun DashboardScreen(viewModel: HRTViewModel) {
     val profile by viewModel.userProfile.collectAsStateWithLifecycle()
     val insight by viewModel.insightState.collectAsStateWithLifecycle()
+    val aiError by viewModel.aiErrorState.collectAsStateWithLifecycle()
     val logs by viewModel.logs.collectAsStateWithLifecycle()
     val medications by viewModel.medications.collectAsStateWithLifecycle()
     val bloodTests by viewModel.bloodTests.collectAsStateWithLifecycle()
@@ -57,12 +58,26 @@ fun DashboardScreen(viewModel: HRTViewModel) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
+                val greeting = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY).let { h ->
+                    when (h) {
+                        in 5..11 -> "Good morning"
+                        in 12..16 -> "Good afternoon"
+                        in 17..21 -> "Good evening"
+                        else -> "Good night"
+                    }
+                }
+                val name = profile?.userName?.trim().orEmpty().ifEmpty { "Friend" }
+                
                 profile?.let { p ->
                     val days = ((System.currentTimeMillis() - p.startDateMillis) / (86400000L)).coerceAtLeast(0)
+                    Text("$greeting, $name! 🌸", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(4.dp))
                     Text("Day $days on HRT", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Text("Regimen: ${p.regimenType}", style = MaterialTheme.typography.bodyLarge)
                 } ?: run {
-                    Text("Welcome to Bloom", style = MaterialTheme.typography.headlineMedium)
+                    Text("$greeting, $name! 🌸", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Welcome to Bloom", style = MaterialTheme.typography.bodyLarge)
                 }
             }
 
@@ -107,10 +122,20 @@ fun DashboardScreen(viewModel: HRTViewModel) {
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                            Spacer(Modifier.width(8.dp))
-                            Text("What to Expect", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                Spacer(Modifier.width(8.dp))
+                                Text("What to Expect", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            }
+                            if (aiError != null) {
+                                Text(
+                                    text = "[$aiError]",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                         Spacer(Modifier.height(8.dp))
                         Text(insight ?: "Loading insights...")
@@ -174,7 +199,7 @@ fun LogDialog(onDismiss: () -> Unit, onSave: (String, String, String) -> Unit) {
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = symptomMenuExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
                         label = { Text("Symptoms") }
                     )
                     ExposedDropdownMenu(expanded = symptomMenuExpanded, onDismissRequest = { symptomMenuExpanded = false }) {

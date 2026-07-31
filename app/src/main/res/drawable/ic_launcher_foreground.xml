@@ -2,17 +2,134 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="#FFAAC8"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="0.5"
-        android:pathData="M12,2C12,2 17,9 17,14C17,16.76 14.76,19 12,19C9.24,19 7,16.76 7,14C7,9 12,2 12,2ZM12,6.5L10,13L12,17L14,13L12,6.5Z"/>
-    <path
-        android:fillColor="#FFAAC8"
-        android:pathData="M16.5,9.5C16.5,9.5 22,14 22,18C22,19.65 20.65,21 19,21C17.35,21 16,19.65 16,18C16,15.5 13,11 13,11L16.5,9.5Z"/>
-    <path
-        android:fillColor="#FFAAC8"
-        android:pathData="M7.5,9.5C7.5,9.5 2,14 2,18C2,19.65 3.35,21 5,21C6.65,21 8,19.65 8,18C8,15.5 11,11 11,11L7.5,9.5Z"/>
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Central cherry blossom group -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54">
+        
+        <!-- Center circle (pistil) -->
+        <path
+            android:fillColor="#FFE3E3"
+            android:pathData="M54,48C57.31,48 60,50.69 60,54C60,57.31 57.31,60 54,60C50.69,60 48,57.31 48,54C48,50.69 50.69,48 54,48Z" />
+
+        <!-- Petal 1 (Top) -->
+        <path
+            android:fillColor="#FFB3D1"
+            android:pathData="M54,54 C54,40 44,24 54,20 C64,24 54,40 54,54 Z" />
+
+        <!-- Petal 2 (Top Right) -->
+        <group
+            android:pivotX="54"
+            android:pivotY="54"
+            android:rotation="72">
+            <path
+                android:fillColor="#FFB3D1"
+                android:pathData="M54,54 C54,40 44,24 54,20 C64,24 54,40 54,54 Z" />
+        </group>
+
+        <!-- Petal 3 (Bottom Right) -->
+        <group
+            android:pivotX="54"
+            android:pivotY="54"
+            android:rotation="144">
+            <path
+                android:fillColor="#FFB3D1"
+                android:pathData="M54,54 C54,40 44,24 54,20 C64,24 54,40 54,54 Z" />
+        </group>
+
+        <!-- Petal 4 (Bottom Left) -->
+        <group
+            android:pivotX="54"
+            android:pivotY="54"
+            android:rotation="216">
+            <path
+                android:fillColor="#FFB3D1"
+                android:pathData="M54,54 C54,40 44,24 54,20 C64,24 54,40 54,54 Z" />
+        </group>
+
+        <!-- Petal 5 (Top Left) -->
+        <group
+            android:pivotX="54"
+            android:pivotY="54"
+            android:rotation="288">
+            <path
+                android:fillColor="#FFB3D1"
+                android:pathData="M54,54 C54,40 44,24 54,20 C64,24 54,40 54,54 Z" />
+        </group>
+
+        <!-- Flower inner details / stamens -->
+        <group
+            android:pivotX="54"
+            android:pivotY="54">
+            <!-- Ray 1 -->
+            <path
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.5"
+                android:strokeLineCap="round"
+                android:pathData="M54,54 L54,44" />
+            <path
+                android:fillColor="#FFE3E3"
+                android:pathData="M54,42C54.83,42 55.5,42.67 55.5,43.5C55.5,44.33 54.83,45 54,45C53.17,45 52.5,44.33 52.5,43.5C52.5,42.67 53.17,42 54,42Z"/>
+        </group>
+        <group
+            android:pivotX="54"
+            android:pivotY="54"
+            android:rotation="72">
+            <!-- Ray 2 -->
+            <path
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.5"
+                android:strokeLineCap="round"
+                android:pathData="M54,54 L54,44" />
+            <path
+                android:fillColor="#FFE3E3"
+                android:pathData="M54,42C54.83,42 55.5,42.67 55.5,43.5C55.5,44.33 54.83,45 54,45C53.17,45 52.5,44.33 52.5,43.5C52.5,42.67 53.17,42 54,42Z"/>
+        </group>
+        <group
+            android:pivotX="54"
+            android:pivotY="54"
+            android:rotation="144">
+            <!-- Ray 3 -->
+            <path
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.5"
+                android:strokeLineCap="round"
+                android:pathData="M54,54 L54,44" />
+            <path
+                android:fillColor="#FFE3E3"
+                android:pathData="M54,42C54.83,42 55.5,42.67 55.5,43.5C55.5,44.33 54.83,45 54,45C53.17,45 52.5,44.33 52.5,43.5C52.5,42.67 53.17,42 54,42Z"/>
+        </group>
+        <group
+            android:pivotX="54"
+            android:pivotY="54"
+            android:rotation="216">
+            <!-- Ray 4 -->
+            <path
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.5"
+                android:strokeLineCap="round"
+                android:pathData="M54,54 L54,44" />
+            <path
+                android:fillColor="#FFE3E3"
+                android:pathData="M54,42C54.83,42 55.5,42.67 55.5,43.5C55.5,44.33 54.83,45 54,45C53.17,45 52.5,44.33 52.5,43.5C52.5,42.67 53.17,42 54,42Z"/>
+        </group>
+        <group
+            android:pivotX="54"
+            android:pivotY="54"
+            android:rotation="288">
+            <!-- Ray 5 -->
+            <path
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.5"
+                android:strokeLineCap="round"
+                android:pathData="M54,54 L54,44" />
+            <path
+                android:fillColor="#FFE3E3"
+                android:pathData="M54,42C54.83,42 55.5,42.67 55.5,43.5C55.5,44.33 54.83,45 54,45C53.17,45 52.5,44.33 52.5,43.5C52.5,42.67 53.17,42 54,42Z"/>
+        </group>
+
+    </group>
 </vector>

@@ -1,6 +1,5 @@
 package com.example.ui
 
-import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -16,7 +15,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
-import java.util.Calendar
 
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -64,18 +62,19 @@ class MarkTakenReceiver : BroadcastReceiver() {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.cancel(medId)
 
-            // Simplistic way to update database without full DI setup
-            val database = androidx.room.Room.databaseBuilder(
-                context.applicationContext,
-                AppDatabase::class.java, "hrt-database"
-            ).fallbackToDestructiveMigration().build()
-            val dao = database.hrtDao()
-            
+            // Use centralized database singleton — no duplicated migrations
+            val pendingResult = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
-                val dbMeds = dao.getAllMedications().first()
-                val med = dbMeds.find { it.id == medId }
-                if (med != null) {
-                    dao.insertMedication(med.copy(lastTakenDateMillis = System.currentTimeMillis()))
+                try {
+                    val database = AppDatabase.getInstance(context.applicationContext)
+                    val dao = database.hrtDao()
+                    val dbMeds = dao.getAllMedications().first()
+                    val med = dbMeds.find { it.id == medId }
+                    if (med != null) {
+                        dao.insertMedication(med.copy(lastTakenDateMillis = System.currentTimeMillis()))
+                    }
+                } finally {
+                    pendingResult.finish()
                 }
             }
         }

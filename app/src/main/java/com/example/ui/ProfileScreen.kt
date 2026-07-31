@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
@@ -27,6 +28,9 @@ fun ProfileScreen(viewModel: HRTViewModel, onSaved: () -> Unit) {
     
     var useOnDeviceAi by remember(profile) { mutableStateOf(profile?.useOnDeviceAi ?: false) }
     var apiKey by remember(profile) { mutableStateOf(profile?.apiKey ?: "") }
+    var selectedAiModel by remember(profile) { mutableStateOf(profile?.selectedAiModel ?: "gemini-3.5-flash") }
+    var isAiEnabled by remember(profile) { mutableStateOf(profile?.isAiEnabled ?: true) }
+    var userName by remember(profile) { mutableStateOf(profile?.userName ?: "Friend") }
     
     // Add start date integration
     var startDateMillis by remember(profile) { mutableStateOf(profile?.startDateMillis ?: System.currentTimeMillis()) }
@@ -37,6 +41,39 @@ fun ProfileScreen(viewModel: HRTViewModel, onSaved: () -> Unit) {
 
     var showBloodTestDialog by remember { mutableStateOf(false) }
 
+    // Autosave when any settings change, with debounce for text fields
+    LaunchedEffect(regimen, startDateMillis, isDarkTheme, useDynamic, useOnDeviceAi, apiKey, selectedAiModel, isAiEnabled, userName) {
+        // Wait 600ms of inactivity before saving to avoid database locks while typing
+        kotlinx.coroutines.delay(600)
+        
+        val p = profile
+        if (p != null) {
+            val hasChanged = p.regimenType != regimen ||
+                    p.startDateMillis != startDateMillis ||
+                    p.isDarkTheme != isDarkTheme ||
+                    p.useDynamicColor != useDynamic ||
+                    p.useOnDeviceAi != useOnDeviceAi ||
+                    (p.apiKey ?: "") != apiKey ||
+                    p.selectedAiModel != selectedAiModel ||
+                    p.isAiEnabled != isAiEnabled ||
+                    p.userName != userName
+            
+            if (hasChanged) {
+                viewModel.saveProfile(
+                    regimenType = regimen,
+                    startDateMillis = startDateMillis,
+                    isDarkTheme = isDarkTheme,
+                    useDynamic = useDynamic,
+                    useOnDeviceAi = useOnDeviceAi,
+                    apiKey = apiKey.takeIf { it.isNotBlank() },
+                    aiModel = selectedAiModel,
+                    userName = userName,
+                    isAiEnabled = isAiEnabled
+                )
+            }
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -46,11 +83,10 @@ fun ProfileScreen(viewModel: HRTViewModel, onSaved: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             item {
-                Text("Your Settings", style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.height(16.dp))
+                Text("Your Settings", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(vertical = 12.dp))
                 
-                Text("Regimen Type & Duration", style = MaterialTheme.typography.titleMedium)
-                Card(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+                Text("Regimen Type & Duration", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(Modifier.padding(vertical = 4.dp)) {
                             options.forEach { opt ->
@@ -89,68 +125,143 @@ fun ProfileScreen(viewModel: HRTViewModel, onSaved: () -> Unit) {
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
-                Card(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+                Spacer(Modifier.height(12.dp))
+                Text("Personal Info", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Dark Mode")
+                        OutlinedTextField(
+                            value = userName,
+                            onValueChange = { userName = it },
+                            label = { Text("Your Name") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+                Text("General & AI Systems", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                Text("Dark Mode", style = MaterialTheme.typography.bodyLarge)
+                            }
                             Switch(
                                 checked = isDarkTheme,
                                 onCheckedChange = { isDarkTheme = it; viewModel.setTheme(it, useDynamic) }
                             )
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Use Monet Theme\n(Dynamic Colors)")
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                Text("Use Monet Theme", style = MaterialTheme.typography.bodyLarge)
+                                Text("Dynamic Colors (Android 12+)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                             Switch(
                                 checked = useDynamic,
                                 onCheckedChange = { useDynamic = it; viewModel.setTheme(isDarkTheme, it) }
                             )
                         }
-                        Spacer(Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Use On-Device AI (Gemini Nano)\nRequires AICore support.")
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                Text("Enable AI System", style = MaterialTheme.typography.bodyLarge)
+                                Text("Disable to hide chat card and use offline generics", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                             Switch(
-                                checked = useOnDeviceAi,
-                                onCheckedChange = { useOnDeviceAi = it }
+                                checked = isAiEnabled,
+                                onCheckedChange = { isAiEnabled = it }
                             )
                         }
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = apiKey,
-                            onValueChange = { apiKey = it },
-                            label = { Text("Gemini API Key") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        val scope = rememberCoroutineScope()
-                        var aiTestResult by remember { mutableStateOf<String?>(null) }
-                        Button(onClick = {
-                            scope.launch {
-                                aiTestResult = "Testing..."
-                                try {
-                                    aiTestResult = com.example.api.GeminiClient.generateInsight(
-                                        "Please reply with exactly 'API Key is working!'",
-                                        "You are a helpful tester.",
-                                        useOnDeviceAi,
-                                        apiKey
-                                    )
-                                } catch (e: Exception) {
-                                    aiTestResult = "Error: ${e.message}"
+                        
+                        if (isAiEnabled) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                    Text("Use On-Device AI", style = MaterialTheme.typography.bodyLarge)
+                                    Text("Gemini Nano — Requires AICore support", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
+                                Switch(
+                                    checked = useOnDeviceAi,
+                                    onCheckedChange = { useOnDeviceAi = it }
+                                )
                             }
-                        }) {
-                            Text("Test AI Configuration")
-                        }
-                        if (aiTestResult != null) {
                             Spacer(Modifier.height(8.dp))
-                            Text(aiTestResult!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                            if (!useOnDeviceAi) {
+                                var expanded by remember { mutableStateOf(false) }
+                                val modelOptions = listOf("gemini-3.5-flash", "gemini-3.1-pro-preview")
+                                ExposedDropdownMenuBox(
+                                    expanded = expanded,
+                                    onExpandedChange = { expanded = !expanded }
+                                ) {
+                                    OutlinedTextField(
+                                        value = selectedAiModel,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("Cloud Model") },
+                                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth()
+                                    )
+                                    ExposedDropdownMenu(
+                                        expanded = expanded,
+                                        onDismissRequest = { expanded = false }
+                                    ) {
+                                        modelOptions.forEach { m ->
+                                            DropdownMenuItem(
+                                                text = { Text(m) },
+                                                onClick = {
+                                                    selectedAiModel = m
+                                                    expanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(Modifier.height(8.dp))
+                            }
+                            
+                            OutlinedTextField(
+                                value = apiKey,
+                                onValueChange = { apiKey = it },
+                                label = { Text("Gemini API Key") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            val scope = rememberCoroutineScope()
+                            var aiTestResult by remember { mutableStateOf<String?>(null) }
+                            Button(onClick = {
+                                scope.launch {
+                                    aiTestResult = "Testing..."
+                                    try {
+                                        aiTestResult = com.example.api.GeminiClient.generateInsight(
+                                            "Please reply with exactly 'API Key is working!'",
+                                            "You are a helpful tester.",
+                                            useOnDeviceAi,
+                                            apiKey,
+                                            selectedAiModel
+                                        ).first
+                                    } catch (e: Exception) {
+                                        aiTestResult = "Error: ${e.message}"
+                                    }
+                                }
+                            }, modifier = Modifier.fillMaxWidth()) {
+                                Text("Test AI Configuration")
+                            }
+                            if (aiTestResult != null) {
+                                Spacer(Modifier.height(8.dp))
+                                Text(aiTestResult!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                            }
+                        } else {
+                            Spacer(Modifier.height(8.dp))
+                            Text("AI integration is completely disabled. Fallback offline medical guides will be displayed.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                         }
                     }
                 }
                 
-                Spacer(Modifier.height(16.dp))
-                Text("Blood Test Results", style = MaterialTheme.typography.titleMedium)
-                Text("Logging tests calibrates the simulation.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(12.dp))
+                Text("Blood Test Results", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+                Text("Logging tests calibrates the simulation.", style = MaterialTheme.typography.bodySmall, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
             }
 
@@ -171,20 +282,18 @@ fun ProfileScreen(viewModel: HRTViewModel, onSaved: () -> Unit) {
 
             item {
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { showBloodTestDialog = true }) {
+                Button(onClick = { showBloodTestDialog = true }, modifier = Modifier.fillMaxWidth()) {
                     Text("+ Log Blood Test")
                 }
-
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        viewModel.saveProfile(regimen, startDateMillis, isDarkTheme, useDynamic, useOnDeviceAi, apiKey = apiKey.takeIf { it.isNotBlank() })
-                        onSaved()
-                    },
-                    modifier = Modifier.testTag("save_profile_button")
-                ) {
-                    Text("Save Settings")
-                }
+                
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "✓ Settings are auto-saved instantly",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
                 
                 Spacer(Modifier.height(32.dp))
                 Text("Data Management", style = MaterialTheme.typography.titleMedium)
@@ -258,7 +367,7 @@ fun ProfileScreen(viewModel: HRTViewModel, onSaved: () -> Unit) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = e2, onValueChange = { e2 = it }, label = { Text("E2 Level") }, modifier = Modifier.weight(1f))
                         ExposedDropdownMenuBox(expanded = e2Expanded, onExpandedChange = { e2Expanded = !e2Expanded }, modifier = Modifier.weight(0.7f)) {
-                            OutlinedTextField(value = e2Unit, onValueChange = {}, readOnly = true, modifier = Modifier.menuAnchor(), label = { Text("Unit") })
+                            OutlinedTextField(value = e2Unit, onValueChange = {}, readOnly = true, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true), label = { Text("Unit") })
                             ExposedDropdownMenu(expanded = e2Expanded, onDismissRequest = { e2Expanded = false }) {
                                 e2Units.forEach { u -> DropdownMenuItem(text = { Text(u) }, onClick = { e2Unit = u; e2Expanded = false }) }
                             }
@@ -268,7 +377,7 @@ fun ProfileScreen(viewModel: HRTViewModel, onSaved: () -> Unit) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = t, onValueChange = { t = it }, label = { Text("T Level") }, modifier = Modifier.weight(1f))
                         ExposedDropdownMenuBox(expanded = tExpanded, onExpandedChange = { tExpanded = !tExpanded }, modifier = Modifier.weight(0.7f)) {
-                            OutlinedTextField(value = tUnit, onValueChange = {}, readOnly = true, modifier = Modifier.menuAnchor(), label = { Text("Unit") })
+                            OutlinedTextField(value = tUnit, onValueChange = {}, readOnly = true, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true), label = { Text("Unit") })
                             ExposedDropdownMenu(expanded = tExpanded, onDismissRequest = { tExpanded = false }) {
                                 tUnits.forEach { u -> DropdownMenuItem(text = { Text(u) }, onClick = { tUnit = u; tExpanded = false }) }
                             }

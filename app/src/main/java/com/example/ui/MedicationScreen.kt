@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -27,39 +28,58 @@ fun MedicationScreen(viewModel: HRTViewModel) {
     var editingMed by remember { mutableStateOf<com.example.data.Medication?>(null) }
     var showDialog by remember { mutableStateOf(false) }
 
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+        onResult = { }
+    )
+
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { editingMed = null; showDialog = true }, modifier = Modifier.testTag("add_med_button")) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Medication")
-            }
+            ExtendedFloatingActionButton(
+                onClick = { editingMed = null; showDialog = true },
+                modifier = Modifier.testTag("add_med_button"),
+                icon = { Icon(Icons.Filled.Add, contentDescription = "Add Medication") },
+                text = { Text("Add Med") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+        Column(modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp)) {
+            Spacer(Modifier.height(16.dp))
             Text(
                 "My Medications",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(16.dp)
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onBackground
             )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Manage your HRT regimen and set reminders.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(16.dp))
 
             if (medications.isEmpty()) {
-                Text(
-                    "No medications added yet.",
-                    modifier = Modifier.padding(16.dp)
-                )
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No medications added yet.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    contentPadding = PaddingValues(bottom = 80.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(medications) { med ->
                         val isTakenToday = (System.currentTimeMillis() - med.lastTakenDateMillis) < (24L * 60 * 60 * 1000)
 
-                        Card(
+                        ElevatedCard(
                             modifier = Modifier.fillMaxWidth().clickable {
                                 editingMed = med
                                 showDialog = true
-                            }
+                            },
+                            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp),
+                            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
                         ) {
                             Row(
                                 modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -67,15 +87,23 @@ fun MedicationScreen(viewModel: HRTViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(med.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                                    Text("${med.method} - ${med.dose}")
-                                    Text("Frequency: ${med.frequency}")
+                                    Text(med.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                                    Spacer(Modifier.height(4.dp))
+                                    Text("${med.method} • ${med.dose}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                    Text("Frequency: ${med.frequency}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Spacer(Modifier.height(8.dp))
                                     if (med.isReminderEnabled) {
-                                        Text(
-                                            "Reminder: ${String.format("%02d:%02d", med.reminderHour, med.reminderMinute)}",
-                                            color = MaterialTheme.colorScheme.primary,
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.secondaryContainer,
+                                            shape = MaterialTheme.shapes.small
+                                        ) {
+                                            Text(
+                                                "🔔 Reminder: ${String.format("%02d:%02d", med.reminderHour, med.reminderMinute)}",
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                        }
                                     }
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
@@ -83,17 +111,17 @@ fun MedicationScreen(viewModel: HRTViewModel) {
                                         Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
                                     }
                                     if (!isTakenToday) {
-                                        Button(onClick = { viewModel.markMedicationTaken(med) }) {
+                                        Button(onClick = { viewModel.markMedicationTaken(med) }, shape = MaterialTheme.shapes.medium) {
                                             Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                                             Spacer(Modifier.width(4.dp))
                                             Text("Take")
                                         }
                                     } else {
-                                        Button(
+                                        OutlinedButton(
                                             onClick = { viewModel.undoMedicationTaken(med) },
-                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                                            shape = MaterialTheme.shapes.medium
                                         ) {
-                                            Icon(Icons.Filled.Undo, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = null, modifier = Modifier.size(16.dp))
                                             Spacer(Modifier.width(4.dp))
                                             Text("Undo", style = MaterialTheme.typography.labelSmall)
                                         }
@@ -132,34 +160,16 @@ fun MedicationScreen(viewModel: HRTViewModel) {
                 editingMed = null
                 
                 if (reminder) {
-                    val intent = android.content.Intent(context, ReminderReceiver::class.java).apply {
-                        putExtra("MED_ID", name.hashCode()) // Weak ID for simplicity
-                        putExtra("MED_NAME", name)
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                     }
-                    val pi = android.app.PendingIntent.getBroadcast(
-                        context, name.hashCode(), intent, android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                    )
                     val alarmManager = context.getSystemService(android.content.Context.ALARM_SERVICE) as android.app.AlarmManager
-                    
-                    val cal = java.util.Calendar.getInstance().apply {
-                        set(java.util.Calendar.HOUR_OF_DAY, hr)
-                        set(java.util.Calendar.MINUTE, min)
-                        set(java.util.Calendar.SECOND, 0)
-                        if (before(java.util.Calendar.getInstance())) {
-                            add(java.util.Calendar.DATE, 1)
-                        }
-                    }
-                    
-                    try {
-                        alarmManager.setRepeating(
-                            android.app.AlarmManager.RTC_WAKEUP,
-                            cal.timeInMillis,
-                            android.app.AlarmManager.INTERVAL_DAY,
-                            pi
-                        )
-                    } catch (e: SecurityException) {
-                        // In Android 14+ need exactly exact alarms permission
-                    }
+                    val fakeMed = com.example.data.Medication(
+                        id = 0, name = name, method = method, dose = dose, frequency = freq,
+                        isReminderEnabled = true, reminderHour = hr, reminderMinute = min,
+                        startDateMillis = System.currentTimeMillis()
+                    )
+                    ReminderUtil.scheduleAlarms(context, alarmManager, fakeMed)
                 }
             }
         )
@@ -188,13 +198,22 @@ fun AddMedicationDialog(medToEdit: com.example.data.Medication?, onDismiss: () -
     val methods = listOf("Oral", "Sublingual", "SubQ Injection", "IM Injection", "Gel", "Patch")
     val frequencies = listOf("Daily", "Twice Daily", "Every 3 days", "Every 5 days", "Weekly", "Bi-weekly", "Monthly", "Every 3 months")
 
+    val recommendation = when {
+        frequency.contains("Twice Daily") -> "💡 Recommended: Take doses 12 hours apart (e.g., 9:00 AM & 9:00 PM) for stable levels."
+        method == "Sublingual" -> "💡 Recommended: Avoid eating/drinking for 15-30 mins after dissolving."
+        method == "Oral" -> "💡 Recommended: Take with a small amount of food to improve absorption."
+        method.contains("Gel") -> "💡 Recommended: Apply to clean, dry skin after a shower."
+        method.contains("Injection") -> "💡 Recommended: Rotate injection sites to prevent tissue scarring."
+        else -> ""
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (medToEdit != null) "Edit Medication" else "Add Medication") },
+        title = { Text(if (medToEdit != null) "Edit Medication" else "Add Medication", fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 ExposedDropdownMenuBox(
                     expanded = nameExpanded,
@@ -205,7 +224,7 @@ fun AddMedicationDialog(medToEdit: com.example.data.Medication?, onDismiss: () -
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Name") },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true)
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true).fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = nameExpanded,
@@ -232,7 +251,7 @@ fun AddMedicationDialog(medToEdit: com.example.data.Medication?, onDismiss: () -
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Method") },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true)
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true).fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = methodExpanded,
@@ -264,7 +283,7 @@ fun AddMedicationDialog(medToEdit: com.example.data.Medication?, onDismiss: () -
                     ExposedDropdownMenuBox(
                         expanded = doseUnitExpanded,
                         onExpandedChange = { doseUnitExpanded = !doseUnitExpanded },
-                        modifier = Modifier.weight(0.5f)
+                        modifier = Modifier.weight(0.7f)
                     ) {
                         OutlinedTextField(
                             value = doseUnit,
@@ -299,7 +318,7 @@ fun AddMedicationDialog(medToEdit: com.example.data.Medication?, onDismiss: () -
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Frequency") },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true)
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true).fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = freqExpanded,
@@ -317,13 +336,28 @@ fun AddMedicationDialog(medToEdit: com.example.data.Medication?, onDismiss: () -
                     }
                 }
 
-                Button(onClick = { showTimePicker = true }) {
-                    Text("Routine Dosage Time: ${String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)}")
+                if (recommendation.isNotEmpty()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = recommendation,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = { showTimePicker = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Base Routine Time: ${String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)}")
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Checkbox(checked = reminder, onCheckedChange = { reminder = it })
-                    Text("Enable Notification")
+                    Text("Enable Notifications", style = MaterialTheme.typography.bodyMedium)
                 }
             }
         },
@@ -342,9 +376,10 @@ fun AddMedicationDialog(medToEdit: com.example.data.Medication?, onDismiss: () -
     if (showTimePicker) {
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("Select Reminder Time") },
+            title = { Text("Select Time") },
             text = { TimePicker(state = timePickerState) },
             confirmButton = { TextButton(onClick = { showTimePicker = false }) { Text("OK") } }
         )
     }
 }
+

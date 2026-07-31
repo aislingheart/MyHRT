@@ -22,6 +22,7 @@ fun OnboardingScreen(viewModel: HRTViewModel, onComplete: () -> Unit) {
     val maxPages = 5
     
     // Page 1 Data
+    var userName by remember { mutableStateOf("") }
     var startDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
     var regimen by remember { mutableStateOf("Feminizing") }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -39,7 +40,7 @@ fun OnboardingScreen(viewModel: HRTViewModel, onComplete: () -> Unit) {
     var aiStatusText by remember { mutableStateOf("") }
     var apiKey by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
-    var showApiKeyPrompt by remember { mutableStateOf(false) }
+    
 
     Scaffold(
         topBar = { TopAppBar(title = { Text(if(currentPage < 4) "Setup Profile (${currentPage+1}/4)" else "Welcome") }) },
@@ -62,7 +63,14 @@ fun OnboardingScreen(viewModel: HRTViewModel, onComplete: () -> Unit) {
                         }) { Text("Next") }
                     } else {
                         Button(onClick = {
-                            viewModel.saveProfile(regimen, startDateMillis, useOnDeviceAi = (aiType == "Local" && wantsAi == true), apiKey = apiKey.takeIf { it.isNotBlank() })
+                            viewModel.saveProfile(
+                                regimenType = regimen,
+                                startDateMillis = startDateMillis,
+                                useOnDeviceAi = (aiType == "Local" && wantsAi == true),
+                                apiKey = apiKey.takeIf { it.isNotBlank() },
+                                userName = userName.trim().ifEmpty { "Friend" },
+                                isAiEnabled = (wantsAi == true)
+                            )
                             onComplete()
                         }) { Text("Finish Setup") }
                     }
@@ -77,20 +85,20 @@ fun OnboardingScreen(viewModel: HRTViewModel, onComplete: () -> Unit) {
         ) {
             AnimatedContent(targetState = currentPage, label = "onboarding") { page ->
                 when (page) {
-                    0 -> PageOne(startDateMillis, { startDateMillis = it }, regimen, { regimen = it })
+                    0 -> PageOne(userName, { userName = it }, startDateMillis, { startDateMillis = it }, regimen, { regimen = it })
                     1 -> PageTwo(viewModel, medications)
                     2 -> PageThree(wantsAi) { wantsAi = it }
                     3 -> PageFour(aiType, { aiType = it }, aiStatusText, apiKey, { apiKey = it }, {
                         scope.launch {
                             aiStatusText = "Testing..."
                             try {
-                                aiStatusText = GeminiClient.generateInsight("Reply exactly with 'AI Working!'", "You are a tester.", useNano = (aiType == "Local"), providedApiKey = apiKey)
+                                aiStatusText = com.example.api.GeminiClient.generateInsight("Reply exactly with 'AI Working!'", "You are a tester.", useNano = (aiType == "Local"), providedApiKey = apiKey).first
                             } catch (e: Throwable) {
                                 aiStatusText = "Failed: ${e.message}"
                             }
                         }
                     })
-                    4 -> PageFive()
+                    4 -> PageFive(userName)
                 }
             }
         }
@@ -99,9 +107,21 @@ fun OnboardingScreen(viewModel: HRTViewModel, onComplete: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageOne(startDateMillis: Long, onDateSelected: (Long) -> Unit, regimen: String, onRegimenSelected: (String) -> Unit) {
+fun PageOne(userName: String, onNameChange: (String) -> Unit, startDateMillis: Long, onDateSelected: (Long) -> Unit, regimen: String, onRegimenSelected: (String) -> Unit) {
     var showDate by remember { mutableStateOf(false) }
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        Text("What is your name?", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = userName,
+            onValueChange = onNameChange,
+            label = { Text("Name") },
+            placeholder = { Text("Enter your name") },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            singleLine = true
+        )
+        Spacer(Modifier.height(24.dp))
+
         Text("Your Regimen", style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(16.dp))
         Row {
@@ -198,7 +218,7 @@ fun PageTwo(viewModel: HRTViewModel, medications: List<com.example.data.Medicati
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = e2, onValueChange = { e2 = it }, label = { Text("E2 Level") }, modifier = Modifier.weight(1f))
                         ExposedDropdownMenuBox(expanded = e2DropdownExpanded, onExpandedChange = { e2DropdownExpanded = !e2DropdownExpanded }, modifier = Modifier.weight(1f)) {
-                            OutlinedTextField(value = e2Unit, onValueChange = {}, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = e2DropdownExpanded) }, modifier = Modifier.menuAnchor())
+                            OutlinedTextField(value = e2Unit, onValueChange = {}, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = e2DropdownExpanded) }, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true))
                             ExposedDropdownMenu(expanded = e2DropdownExpanded, onDismissRequest = { e2DropdownExpanded = false }) {
                                 DropdownMenuItem(text = { Text("pg/mL") }, onClick = { e2Unit = "pg/mL"; e2DropdownExpanded = false })
                                 DropdownMenuItem(text = { Text("pmol/L") }, onClick = { e2Unit = "pmol/L"; e2DropdownExpanded = false })
@@ -209,7 +229,7 @@ fun PageTwo(viewModel: HRTViewModel, medications: List<com.example.data.Medicati
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = t, onValueChange = { t = it }, label = { Text("T Level") }, modifier = Modifier.weight(1f))
                         ExposedDropdownMenuBox(expanded = tDropdownExpanded, onExpandedChange = { tDropdownExpanded = !tDropdownExpanded }, modifier = Modifier.weight(1f)) {
-                            OutlinedTextField(value = tUnit, onValueChange = {}, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = tDropdownExpanded) }, modifier = Modifier.menuAnchor())
+                            OutlinedTextField(value = tUnit, onValueChange = {}, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = tDropdownExpanded) }, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true))
                             ExposedDropdownMenu(expanded = tDropdownExpanded, onDismissRequest = { tDropdownExpanded = false }) {
                                 DropdownMenuItem(text = { Text("ng/dL") }, onClick = { tUnit = "ng/dL"; tDropdownExpanded = false })
                                 DropdownMenuItem(text = { Text("nmol/L") }, onClick = { tUnit = "nmol/L"; tDropdownExpanded = false })
@@ -276,11 +296,11 @@ fun PageFour(aiType: String, onAiTypeChange: (String) -> Unit, statusText: Strin
 }
 
 @Composable
-fun PageFive() {
+fun PageFive(userName: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text("🌸", style = MaterialTheme.typography.displayLarge)
         Spacer(Modifier.height(16.dp))
-        Text("Welcome to Bloom", style = MaterialTheme.typography.headlineLarge)
+        Text("Welcome to Bloom, ${userName.trim().ifEmpty { "Friend" }}!", style = MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.height(8.dp))
         Text("Your journey begins here.", style = MaterialTheme.typography.bodyMedium)
     }

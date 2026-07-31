@@ -2,11 +2,11 @@ package com.example.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,16 +18,30 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 @Composable
 fun AppNavigation(viewModel: HRTViewModel) {
     val navController = rememberNavController()
-    val screens = listOf(
-        Screen.Dashboard,
-        Screen.Medications,
-        Screen.Effects,
-        Screen.Chat,
-        Screen.Profile
-    )
+    val profile by viewModel.userProfile.collectAsStateWithLifecycle()
+    val isAiEnabled = profile?.isAiEnabled ?: true
+    
+    val screens = if (isAiEnabled) {
+        listOf(
+            Screen.Dashboard,
+            Screen.Medications,
+            Screen.Effects,
+            Screen.Chat,
+            Screen.Profile
+        )
+    } else {
+        listOf(
+            Screen.Dashboard,
+            Screen.Medications,
+            Screen.Effects,
+            Screen.Profile
+        )
+    }
 
     Scaffold(
         bottomBar = {
@@ -68,9 +82,9 @@ fun AppNavigation(viewModel: HRTViewModel) {
 }
 
 sealed class Screen(val route: String, val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    object Dashboard : Screen("dashboard", "Home", Icons.AutoMirrored.Filled.List)
-    object Medications : Screen("medications", "Meds", Icons.Filled.Warning)
-    object Effects : Screen("effects", "Levels", Icons.Filled.Info)
+    object Dashboard : Screen("dashboard", "Home", Icons.Filled.Home)
+    object Medications : Screen("medications", "Meds", Icons.Filled.Medication)
+    object Effects : Screen("effects", "Levels", Icons.Filled.ShowChart)
     object Chat : Screen("chat", "Chat", Icons.AutoMirrored.Filled.Chat)
     object Profile : Screen("profile", "Settings", Icons.Filled.Person)
 }
